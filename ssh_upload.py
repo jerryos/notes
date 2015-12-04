@@ -1,6 +1,7 @@
 ##!/usr/bin/python
 # encoding=utf-8
 # Filename: ssh_upload.py
+# Paramiko’s documentation: http://docs.paramiko.org/en/1.16/
  
 import os
 import sys
@@ -54,6 +55,7 @@ class SSHFileUpload:
     def __ssh_connect(self):
         if (not self.__ssh):
             self.__ssh = paramiko.SSHClient()
+			# 遇到新的server，接受新server，将公钥添加到本地的HostKeys
             self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.__ssh.connect(self.hostname, self.port, self.username, self.password)
             self._transport = self.__ssh.get_transport()
@@ -74,7 +76,6 @@ class SSHFileUpload:
     def exec_command(self, command):
         if not self.is_connected():
             self.reconnect()
-             
         return self.__ssh_exec(command)
  
     def invoke_shell(self, command='', password='abc123!@#'):
@@ -167,11 +168,11 @@ class SSHFileUpload:
             _candidate_dirs.append(local_dir.replace('\\', '/'))
             return _candidate_dirs
  
-        for dir_name, sub_dirs, files in os.walk(local_dir):
-            dir_name = dir_name.replace('\\', '/')
-            for filename in files:
-                _candidate_dirs.append(dir_name + '/' + filename)
-        return _candidate_dirs
+#        for dir_name, sub_dirs, files in os.walk(local_dir):
+#            dir_name = dir_name.replace('\\', '/')
+#            for filename in files:
+#                _candidate_dirs.append(dir_name + '/' + filename)
+#        return _candidate_dirs
  
  
     def __doFilters(self, candidate_dirs, filters=[]):
