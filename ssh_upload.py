@@ -137,7 +137,6 @@ class SSHFileUpload:
             self.copyFile(local_file, remote_file)
         logging.info("Copied [%s] to [%s]\n" % (local_dir, remote_dir))
  
- 
     def doUpload(self, local_dir, remote_dir, filters=[]):
         candidate_dirs = self._walkLocalDirs(local_dir)
         candidate_dirs = self.__doFilters(candidate_dirs, filters)
@@ -168,18 +167,17 @@ class SSHFileUpload:
             _candidate_dirs.append(local_dir.replace('\\', '/'))
             return _candidate_dirs
  
-#        for dir_name, sub_dirs, files in os.walk(local_dir):
-#            dir_name = dir_name.replace('\\', '/')
-#            for filename in files:
-#                _candidate_dirs.append(dir_name + '/' + filename)
-#        return _candidate_dirs
+        for dir_name, sub_dirs, files in os.walk(local_dir):
+            dir_name = dir_name.replace('\\', '/')
+            for filename in files:
+                _candidate_dirs.append(dir_name + '/' + filename)
+        return _candidate_dirs
  
  
     def __doFilters(self, candidate_dirs, filters=[]):
         for func in filters:
             candidate_dirs = filter(func, candidate_dirs)
         return candidate_dirs
- 
  
 hostname='your_ip'
 username='test'
