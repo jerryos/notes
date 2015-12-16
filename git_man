@@ -1,0 +1,95 @@
+git server安装：
+=======================================================================
+一、安装git、openssh和相关库（root账户执行）
+# yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel
+# tar zxvf git-1.9.0.tar.gz
+# cd git-1.9.0
+# make prefix=/usr/local all
+# make prefix=/usr/local install
+
+二、设置git账户ssh免密码（git client和git server上创建git账户，实现免密码从client登录server）
+
+gitserver创建git账户
+# useradd -r -s /bin/sh -c 'git version control' -d /home/git  git
+# mkdir -p /home/git
+# chown -R git:git /home/git
+
+git client端操作（切换到git账号）：
+$ ssh-keygen -t rsa创建公私钥
+然后将 ~/.ssh/*.pub文件scp到git servere
+
+git server端操作
+将*.pub文件内容追加到gitserver的git账户下~/.ssh/authorized_keys文件中
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++ 注意：我这里配置的是client的git账户可以免密登录到gitserver的git账户，关于其他账户（例如root）免密码登录gitserver的git的配置后面也会详细说明					+
++ 1. 将client的git账号的*.pub公钥文件注入到gitserver的git账号的~/.ssh/authorized_keys文件中，就可以实现client的git账户免密码登录gitserver的git账号				+
++																						+
++ 2. 下面实现client端的root账号（或者其他账号也可以）免密码登录gitserver的git账号：												+
++    将client的root账号的*.pub公钥文件注入到gitserver的git账号的~/.ssh/authorized_keys文件中，以后就可以在root账户下 "#ssh git@gitserverIP" 免密码登录gitserver的git账户	+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+三、创建repo（需要登录gitserver操作）
+# mkdir /home/git/repo && cd /home/git/repo
+# git init --bare hugin.git
+# git init --bare hugin.git
+# chown -R git:git /home/git	注；该操作必须要执行，否则同步的时候没有git无法写入更改到repo
+======================================================================
+
+
+
+git client操作（gitserver已经创建了hugin和opencv两个repo）
+=======================================================================================
+一、操作前需要执行adduser添加git账户，操作在git账户下执行
+1. git clone git@192.168.5.34:repo/hugin.git
+2. 增加/修改文件
+3. git add .
+4. git config --global user.name  jie.he
+   git config --global user.email jie.a.he@intel.cn
+5. git commit -m "***"
+
+二、指定remote repo，并推送（已设置remote repo，步骤7可跳过，直接执行步骤8，git push到remote repo）。.git/config文件存放了remote repo信息和branch信息，可以增加删除
+6. git remote add origin git@192.168.5.34:repo/hugin.git 
+7. git push origin master		// 将本地master分支的改变推送带remote repo的master分支
+
+注意：
+# git remote add remote_repo_name git@192.168.5.34:repo/hugin.git		// 添加remote repo 
+======================================================================================
+
+
+
+
+git使用：
+一、创建remote repo
+需要登录gitserver，git init --bare创建，具体参考上面的教程
+
+二、创建/删除本地分支
+1. git checkout -b branckName	// 创建分支branchName，参数-b 切换到新创建的分支，不加参数只是创建分支，不切换到新分支
+2. git branch branckName	// 创建分支branckName
+3. git checkout branch1		//切换到branch1分支	
+4. git branch -d branch1	// 删除branch1分支，要切换到非删除的分支
+
+三、将本地分支push到远程分支
+# git push <remote repo> <本地分支名>:<远程分支名>
+
+四、删除远程分支
+# git push <remote repo> :<远程分支名>
+或者
+# # git push <remote repo> --delete <远程分支名>
+
+五、获取所有所有branch
+1. git clone git@192.168.5.34:repo/hugin.git  && cd hugin
+2. git branch -a								//列出所有分支名称如下：
+remotes/origin/maste
+remotes/origin/develop
+3. git checkout -b develop origin/develop					//checkout的远程的dev分支，在本地起名为dev分支，并切换到本地的dev分支
+4. git branck									// 查看目前所在分支
+
+六、打tag
+git tag -a v1.0 -m "origin source code "
+git tag -d tagName
+
+七、推送tag的remote repo
+如果要一次推送所有本地新增的标签上去，可以使用 --tags 选项：# git push origin --tags，
+推送指定的标签：$ git push origin  lilerong 
+普通的git push origin master操作不会推送标签到服务器端。
