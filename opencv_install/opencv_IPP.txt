@@ -1,0 +1,41 @@
+一、IPP安装：
+========================================================
+1. l_ipp_8.0.0.061/install.sh， 使用license激活
+
+2. source /opt/intel/ipp/bin/ippvars.sh intel64， 设置环境变量LD_LIBRARY_PATH/LIBRARY_PATH
+写入/etc/profile
+
+
+二、openCV安装：
+========================================================
+编译opencv 使用IPP的设置
+首先创建cmake目录，debug_build
+然后：
+1. 调用安装的IPP：
+cmake -DIPPROOT=/opt/intel/ipp  -DWITH_IPP=ON -DCMAKE_BUILD_TYPE=Debug ..
+使用IPP的cmake配置文件
+cmake/OpenCVFindIPP.cmake
+============================
+The script to detect Intel(R) Integrated Performance Primitives (IPP) installation/package
+......
+============================
+
+2. 使用opencv自带的IPP（IPP_IVC Version），默认是用自带的
+cmake -DWITH_IPP=ON -DCMAKE_BUILD_TYPE=Debug ..
+
+IPP ICV版本安装包：
+ippicv_linux_20141027.tgz安装包，下载后拷贝到opencv/3rdparty/ippicv/downloads/linux-8b449a536a2157bcad08a2b9f266828b/ 目录下
+
+
+
+三、opencv演示demo:
+==========================================================
+源码目录：
+opencv-3.0.0/samples/cpp/tutorial_code/ImgTrans/filter2D_demo.cpp
+编译命令：
+在sample下创建cmake目录debug_build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+filter2D函数：
+modules/imgproc/src/filter.cpp +4582
+
