@@ -1,0 +1,174 @@
+#! /bin/bash  
+#filename: test.sh  
+    
+# arg1=start, arg2=end, format: %s.%N  
+function getTiming() {  
+    start=$1  
+    end=$2  
+    funcName=$3
+     
+    start_s=$(echo $start | cut -d '.' -f 1)  
+    start_ns=$(echo $start | cut -d '.' -f 2)  
+    end_s=$(echo $end | cut -d '.' -f 1)  
+    end_ns=$(echo $end | cut -d '.' -f 2)  
+  
+  
+# for debug..  
+#    echo $start  
+#    echo $end  
+  
+  
+    time=$(( ( 10#$end_s - 10#$start_s ) * 1000 + ( 10#$end_ns / 1000000 - 10#$start_ns / 1000000 ) ))  
+  
+    echo "$time ms"  
+    echo "$time ms" > "$funcName""$4"_time.log
+}  
+
+function runHelp() {
+    echo "stitching: stitch videos to a panorama video"
+    echo ""
+    echo "Usage: ./stitching projectName frameNum nonaDir enblendDir"
+    echo "  Options:"
+    echo "      projectName       input project name "
+    echo "      frameNum          input video frame number "
+    echo "      nonaDir           input nona binary path(optional, default: /usr/local/bin) "
+    echo "      enblendDir        input enblend binary path(optional, default: /usr/local/bin) "
+    echo ""
+}
+
+function runNona() {
+    dir=$1
+    root_dir=$2
+    $dir/nona -z LZW -r ldr -m TIFF_m -o nona -i 0 "$root_dir"/template
+    $dir/nona -z LZW -r ldr -m TIFF_m -o nona -i 1 "$root_dir"/template
+    $dir/nona -z LZW -r ldr -m TIFF_m -o nona -i 2 "$root_dir"/template
+    $dir/nona -z LZW -r ldr -m TIFF_m -o nona -i 3 "$root_dir"/template
+    $dir/nona -z LZW -r ldr -m TIFF_m -o nona -i 4 "$root_dir"/template
+    $dir/nona -z LZW -r ldr -m TIFF_m -o nona -i 5 "$root_dir"/template
+}
+
+function runEnblend() {
+    dir1=$1
+    output_dir=$2
+    echo "enblend dir : "$1
+    $dir1/enblend --compression=LZW -w -f906x1528+1040+0 --output="$output_dir"/enblend"$3".tif nona0000.tif nona0001.tif nona0002.tif nona0003.tif nona0004.tif nona0005.tif
+}
+
+function copy() {
+    echo "copy picture"
+    source_pic=$2
+    dst_pic=$3
+    cp "$source_pic"/jpg0_"$1".jpg "$dst_pic"/0.jpg
+    cp "$source_pic"/jpg1_"$1".jpg "$dst_pic"/1.jpg
+    cp "$source_pic"/jpg2_"$1".jpg "$dst_pic"/2.jpg
+    cp "$source_pic"/jpg3_"$1".jpg "$dst_pic"/3.jpg
+    cp "$source_pic"/jpg4_"$1".jpg "$dst_pic"/4.jpg
+    cp "$source_pic"/jpg5_"$1".jpg "$dst_pic"/5.jpg
+}
+
+function del() {
+	echo "del all in "$1
+		rm "$1"/* -rf
+    echo ""
+}
+
+if [ x"$1" = x ] || [ x"$2" = x ] || [ x"$1" = "x-h" ] || [ x"$1" = "x--help" ];
+then
+    runHelp
+    exit 0
+fi
+
+projectName=$1
+frameNum=$2
+#set nona path
+if [ x"$3" = x ];
+then
+    nonaDir="/usr/local/bin"
+    echo "set nona 1"
+else
+    nonaDir=$3
+    echo "set nona 2"
+fi
+
+#set enblend path
+if [ x"$4" = x ];
+then
+    enblendDir="/usr/local/bin"
+    echo "set enblend 1"
+else
+    enblendDir=$4
+    echo "set enblend 2"
+fi
+
+echo "program : "$0
+echo "projectName : "$projectName
+echo "frameNum : "$frameNum
+echo "nonaDir : "$nonaDir
+echo "enblendDir : "$enblendDir
+
+
+# apache1目录是nfs在本地的挂载点，里面存有web的文件
+sourcevideo="/apache1/videostitch/projects"		# 所有project存放的目录
+root_dir="$sourcevideo"/"$projectName" 			# 当前操作的project目录
+current_pic="$root_dir"/tmp
+source_pic="$root_dir"/sourcepic
+output_pic="$root_dir"/output
+log="$root_dir"/log
+
+echo "sourcevideo : "$sourcevideo
+echo "root_dir : "$root_dir
+echo "current_pic : "$current_pic
+echo "source_pic : "$source_pic
+echo "output_pic : "$output_pic
+echo "log : "$log
+
+#delete exist dir. 清除之前拼接的结果
+rm $current_pic -rf
+rm $source_pic -rf
+rm $output_pic -rf
+rm $log -rf
+
+mkdir $current_pic
+mkdir $source_pic
+mkdir $output_pic
+mkdir $log
+
+# rotation and copy to the p source_pic dir. 旋转gopro的镜头到同一个方向（其中某一个gopro的方向，这里统一旋转到videoinput5的方向）
+ffmpeg -i $root_dir/videoinput0.mp4 -vf "transpose=1" -q:v 0 -an $source_pic/videoinput0.mp4
+ffmpeg -i $root_dir/videoinput1.mp4 -vf "transpose=1" -q:v 0 -an $source_pic/videoinput1.mp4
+ffmpeg -i $root_dir/videoinput2.mp4 -vf "transpose=1" -q:v 0 -an $source_pic/videoinput2.mp4
+ffmpeg -i $root_dir/videoinput3.mp4 -vf "transpose=1" -q:v 0 -an $source_pic/videoinput3.mp4
+ffmpeg -i $root_dir/videoinput4.mp4 -vf "transpose=1" -q:v 0 -an $source_pic/videoinput4.mp4
+
+#ffmpeg -i $root_dir/videoinput0.mp4 -vf "rotate=90*(PI/180):bilinear=0,format=yuv420p" -metadata:s:v rotate=0 -q:v 0 -an $source_pic/videoinput0.mp4
+#ffmpeg -i $root_dir/videoinput1.mp4 -vf "rotate=90*(PI/180):bilinear=0,format=yuv420p" -metadata:s:v rotate=0 -q:v 0 -an $source_pic/videoinput1.mp4
+#ffmpeg -i $root_dir/videoinput2.mp4 -vf "rotate=90*(PI/180):bilinear=0,format=yuv420p" -metadata:s:v rotate=0 -q:v 0 -an $source_pic/videoinput2.mp4
+#ffmpeg -i $root_dir/videoinput3.mp4 -vf "rotate=90*(PI/180):bilinear=0,format=yuv420p" -metadata:s:v rotate=0 -q:v 0 -an $source_pic/videoinput3.mp4
+#ffmpeg -i $root_dir/videoinput4.mp4 -vf "rotate=90*(PI/180):bilinear=0,format=yuv420p" -metadata:s:v rotate=0 -q:v 0 -an $source_pic/videoinput4.mp4
+cp $root_dir/videoinput5.mp4 $source_pic/videoinput5.mp4
+
+# 从video中抽出frame，保存为图片
+./transcode --input $source_pic --frame_num $frameNum --video_num 6
+
+# 拼接同一时刻6个摄像头的图片，输出一个全景图片
+for((i=0;i<$frameNum;i++))
+do
+  #copy current pic
+  copy $i $source_pic $current_pic
+  startNona=$(date +%s.%N)  
+  runNona $nonaDir $root_dir
+  endNona=$(date +%s.%N)  
+  getTiming $startNona $endNona "nona" $i
+
+  startEnblend=$(date +%s.%N)  
+  runEnblend $enblendDir $output_pic $i
+  endEnblend=$(date +%s.%N)  
+  getTiming $startEnblend $endEnblend "enblend" $i
+
+  del $current_pic
+  rm *.tif
+  mv *.log $log
+done
+
+# 将所有时刻的全景图片合成为video，得到全景video
+ ffmpeg -f image2 -i "$output_pic"/enblend%1d.tif -r 25 -qscale 0 "$root_dir"/video.mp4
